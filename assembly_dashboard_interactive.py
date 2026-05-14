@@ -55,6 +55,12 @@ if 'auto_capex_mult' not in st.session_state:
     st.session_state.auto_capex_mult = 1.0
 if 'production_volume' not in st.session_state:
     st.session_state.production_volume = 150000
+if 'labor_cost_mult' not in st.session_state:
+    st.session_state.labor_cost_mult = 1.0
+if 'overhead_cost_mult' not in st.session_state:
+    st.session_state.overhead_cost_mult = 1.0
+if 'material_cost_mult' not in st.session_state:
+    st.session_state.material_cost_mult = 1.0
 
 # ==================== SIDEBAR - SIMULASI PARAMETER ====================
 with st.sidebar:
@@ -95,6 +101,7 @@ with st.sidebar:
     st.markdown("#### 🏗️ CAPEX Cost Adjustment")
     
     st.markdown("**Manual Assembly CAPEX**")
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 388,100 SEK</span>', unsafe_allow_html=True)
     manual_mult = st.slider(
         "Manual CAPEX multiplier",
         min_value=0.5,
@@ -107,6 +114,7 @@ with st.sidebar:
     st.caption(f"Multiplier: {manual_mult:.1f}x")
     
     st.markdown("**Hybrid Assembly CAPEX**")
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 444,581 SEK</span>', unsafe_allow_html=True)
     hybrid_mult = st.slider(
         "Hybrid CAPEX multiplier",
         min_value=0.5,
@@ -119,6 +127,7 @@ with st.sidebar:
     st.caption(f"Multiplier: {hybrid_mult:.1f}x")
     
     st.markdown("**Full Automation CAPEX**")
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 7,658,631 SEK</span>', unsafe_allow_html=True)
     auto_mult = st.slider(
         "Automation CAPEX multiplier",
         min_value=0.5,
@@ -131,11 +140,61 @@ with st.sidebar:
     st.caption(f"Multiplier: {auto_mult:.1f}x")
     
     st.markdown("---")
-    st.markdown("**💡 Tip:** Adjust the sliders to simulate different scenarios!")
+    
+    # Operational Cost Multipliers
+    st.markdown("#### 💼 Operational Cost Adjustment")
+    
+    st.markdown("**Material Cost Multiplier**")
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 191.59 SEK/unit (all scenarios)</span>', unsafe_allow_html=True)
+    material_mult = st.slider(
+        "Material cost multiplier",
+        min_value=0.5,
+        max_value=2.0,
+        value=st.session_state.material_cost_mult,
+        step=0.1,
+        label_visibility="collapsed"
+    )
+    st.session_state.material_cost_mult = material_mult
+    st.caption(f"Multiplier: {material_mult:.1f}x")
+    
+    st.markdown("**Labor Cost Multiplier**")
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 2.74 | Hybrid: 9.11 | Auto: 0.52 (SEK/unit)</span>', unsafe_allow_html=True)
+    labor_mult = st.slider(
+        "Labor cost multiplier",
+        min_value=0.5,
+        max_value=2.0,
+        value=st.session_state.labor_cost_mult,
+        step=0.1,
+        label_visibility="collapsed"
+    )
+    st.session_state.labor_cost_mult = labor_mult
+    st.caption(f"Multiplier: {labor_mult:.1f}x")
+    
+    st.markdown("**Overhead Cost Multiplier**")
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 4.00 | Hybrid: 4.06 | Auto: 4.42 (SEK/unit)</span>', unsafe_allow_html=True)
+    overhead_mult = st.slider(
+        "Overhead cost multiplier",
+        min_value=0.5,
+        max_value=2.0,
+        value=st.session_state.overhead_cost_mult,
+        step=0.1,
+        label_visibility="collapsed"
+    )
+    st.session_state.overhead_cost_mult = overhead_mult
+    st.caption(f"Multiplier: {overhead_mult:.1f}x")
+    
+    st.markdown("---")
+    st.markdown("**💡 Tips:**")
+    st.markdown("""
+    - **Material:** Supplier price changes, bulk discounts
+    - **Labor:** Wage increases, productivity improvements
+    - **Overhead:** Facility costs, utilities, maintenance
+    """)
+    st.markdown("**💡 Adjust sliders to simulate cost inflation or efficiency improvements!")
 
 # ==================== CALCULATE DYNAMICS DATA ====================
 
-def calculate_scenario(scenario_type, selling_price, production_volume, capex_multiplier):
+def calculate_scenario(scenario_type, selling_price, production_volume, capex_multiplier, material_mult, labor_mult, overhead_mult):
     """Calculate financial metrics based on parameters"""
     
     # Base data from PDF
@@ -175,8 +234,13 @@ def calculate_scenario(scenario_type, selling_price, production_volume, capex_mu
     adjusted_capex = data['base_capex'] * capex_multiplier
     capex_per_unit = adjusted_capex / 5 / production_volume  # 5 year depreciation
     
+    # Adjust operational costs
+    adjusted_material_cost = data['material_cost'] * material_mult
+    adjusted_labor_cost = data['labor_cost'] * labor_mult
+    adjusted_overhead_cost = data['overhead_cost'] * overhead_mult
+    
     # Calculate costs
-    cost_per_unit = data['material_cost'] + data['labor_cost'] + data['overhead_cost'] + capex_per_unit
+    cost_per_unit = adjusted_material_cost + adjusted_labor_cost + adjusted_overhead_cost + capex_per_unit
     profit_per_unit = selling_price - cost_per_unit
     
     # Financial calculations
@@ -187,16 +251,16 @@ def calculate_scenario(scenario_type, selling_price, production_volume, capex_mu
     monthly_profit = annual_profit / 12
     daily_profit = annual_profit / 250
     
-    profit_margin = (profit_per_unit / selling_price) * 100
+    profit_margin = (profit_per_unit / selling_price) * 100 if selling_price > 0 else 0
     
     # Payback period (adjusted based on profit change)
-    if profit_per_unit > 0:
+    if profit_per_unit > 0 and annual_profit > 0:
         payback_days = adjusted_capex / (annual_profit / 365)
     else:
         payback_days = 999999
     
     # ROI
-    if annual_profit > 0:
+    if annual_profit > 0 and adjusted_capex > 0:
         roi_percent = (annual_profit / adjusted_capex) * 100
     else:
         roi_percent = 0
@@ -215,13 +279,16 @@ def calculate_scenario(scenario_type, selling_price, production_volume, capex_mu
         'payback_days': payback_days,
         'roi_percent': roi_percent,
         'operators': data['operators'],
-        'flexibility': data['flexibility']
+        'flexibility': data['flexibility'],
+        'material_cost': adjusted_material_cost,
+        'labor_cost': adjusted_labor_cost,
+        'overhead_cost': adjusted_overhead_cost
     }
 
 # Calculate all scenarios
-manual = calculate_scenario('Manual', selling_price, production_volume, manual_mult)
-hybrid = calculate_scenario('Hybrid', selling_price, production_volume, hybrid_mult)
-automation = calculate_scenario('Full Automation', selling_price, production_volume, auto_mult)
+manual = calculate_scenario('Manual', selling_price, production_volume, manual_mult, material_mult, labor_mult, overhead_mult)
+hybrid = calculate_scenario('Hybrid', selling_price, production_volume, hybrid_mult, material_mult, labor_mult, overhead_mult)
+automation = calculate_scenario('Full Automation', selling_price, production_volume, auto_mult, material_mult, labor_mult, overhead_mult)
 
 scenarios_dict = {
     'Manual': manual,
@@ -311,6 +378,39 @@ with tab1:
                     </div>
                 </div>
             """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Cost Breakdown
+    st.markdown("### 💰 Cost Breakdown per Unit (Current Simulation)")
+    
+    cost_breakdown = {
+        'Cost Component': ['Material', 'Labor', 'Overhead', 'CAPEX/Unit', 'Total'],
+        'Manual': [
+            f"{manual['material_cost']:.2f}",
+            f"{manual['labor_cost']:.2f}",
+            f"{manual['overhead_cost']:.2f}",
+            f"{manual['capex']/(5*production_volume):.2f}",
+            f"{manual['cost_per_unit']:.2f}"
+        ],
+        'Hybrid': [
+            f"{hybrid['material_cost']:.2f}",
+            f"{hybrid['labor_cost']:.2f}",
+            f"{hybrid['overhead_cost']:.2f}",
+            f"{hybrid['capex']/(5*production_volume):.2f}",
+            f"{hybrid['cost_per_unit']:.2f}"
+        ],
+        'Full Automation': [
+            f"{automation['material_cost']:.2f}",
+            f"{automation['labor_cost']:.2f}",
+            f"{automation['overhead_cost']:.2f}",
+            f"{automation['capex']/(5*production_volume):.2f}",
+            f"{automation['cost_per_unit']:.2f}"
+        ]
+    }
+    
+    cost_df = pd.DataFrame(cost_breakdown)
+    st.dataframe(cost_df, use_container_width=True, hide_index=True)
     
     st.markdown("---")
     
@@ -684,14 +784,17 @@ with tab4:
 with tab5:
     st.markdown("### 💡 What-If Scenario Analysis")
     
-    st.markdown("""
+    st.markdown(f"""
     **Current Simulation Parameters:**
-    - **Selling Price:** {:.2f} SEK
-    - **Annual Production:** {:,.0f} units
-    - **Manual CAPEX Multiplier:** {:.1f}x
-    - **Hybrid CAPEX Multiplier:** {:.1f}x
-    - **Automation CAPEX Multiplier:** {:.1f}x
-    """.format(selling_price, production_volume, manual_mult, hybrid_mult, auto_mult))
+    - **Selling Price:** {selling_price:.2f} SEK
+    - **Annual Production:** {production_volume:,.0f} units
+    - **Manual CAPEX Multiplier:** {manual_mult:.1f}x
+    - **Hybrid CAPEX Multiplier:** {hybrid_mult:.1f}x
+    - **Automation CAPEX Multiplier:** {auto_mult:.1f}x
+    - **Material Cost Multiplier:** {material_mult:.1f}x
+    - **Labor Cost Multiplier:** {labor_mult:.1f}x
+    - **Overhead Cost Multiplier:** {overhead_mult:.1f}x
+    """)
     
     st.markdown("---")
     
@@ -703,9 +806,9 @@ with tab5:
     auto_profit_by_price = []
     
     for p in price_range:
-        m = calculate_scenario('Manual', p, production_volume, manual_mult)
-        h = calculate_scenario('Hybrid', p, production_volume, hybrid_mult)
-        a = calculate_scenario('Full Automation', p, production_volume, auto_mult)
+        m = calculate_scenario('Manual', p, production_volume, manual_mult, material_mult, labor_mult, overhead_mult)
+        h = calculate_scenario('Hybrid', p, production_volume, hybrid_mult, material_mult, labor_mult, overhead_mult)
+        a = calculate_scenario('Full Automation', p, production_volume, auto_mult, material_mult, labor_mult, overhead_mult)
         manual_profit_by_price.append(m['annual_profit'])
         hybrid_profit_by_price.append(h['annual_profit'])
         auto_profit_by_price.append(a['annual_profit'])
@@ -744,9 +847,9 @@ with tab5:
     auto_profit_by_vol = []
     
     for v in volume_range:
-        m = calculate_scenario('Manual', selling_price, v, manual_mult)
-        h = calculate_scenario('Hybrid', selling_price, v, hybrid_mult)
-        a = calculate_scenario('Full Automation', selling_price, v, auto_mult)
+        m = calculate_scenario('Manual', selling_price, v, manual_mult, material_mult, labor_mult, overhead_mult)
+        h = calculate_scenario('Hybrid', selling_price, v, hybrid_mult, material_mult, labor_mult, overhead_mult)
+        a = calculate_scenario('Full Automation', selling_price, v, auto_mult, material_mult, labor_mult, overhead_mult)
         manual_profit_by_vol.append(m['annual_profit'])
         hybrid_profit_by_vol.append(h['annual_profit'])
         auto_profit_by_vol.append(a['annual_profit'])
@@ -783,6 +886,7 @@ with tab6:
     profits = [manual['annual_profit'], hybrid['annual_profit'], automation['annual_profit']]
     best_idx = profits.index(max(profits))
     best_scenario = scenarios_list[best_idx]
+    best_data = scenarios_dict[best_scenario]
     
     st.markdown(f"""
         <div style='background: linear-gradient(135deg, {colors_dict[best_scenario]}20 0%, {colors_dict[best_scenario]}05 100%);
@@ -790,7 +894,7 @@ with tab6:
             <h3 style='color: {colors_dict[best_scenario]}; margin-top: 0;'>✅ RECOMMENDED: {best_scenario}</h3>
             <p style='font-size: 1.05em; line-height: 1.6;'>
                 Based on current simulation parameters, <b>{best_scenario}</b> provides the best financial performance
-                with an annual profit of <b>{manual['annual_profit']/1e6:.2f}M SEK</b> and ROI of <b>{manual['roi_percent']:.0f}%</b> per year.
+                with an annual profit of <b>{best_data['annual_profit']/1e6:.2f}M SEK</b> and ROI of <b>{best_data['roi_percent']:.0f}%</b> per year.
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -800,19 +904,20 @@ with tab6:
     with col1:
         st.markdown("#### 💡 Key Advantages")
         st.markdown(f"""
-        - **Annual Profit:** {manual['annual_profit']/1e6:.2f}M SEK
-        - **ROI:** {manual['roi_percent']:.0f}% per year
-        - **Payback Period:** {manual['payback_days']:.0f} days
-        - **Initial Investment:** {manual['capex']:,.0f} SEK
-        - **Profit per Unit:** {manual['profit_per_unit']:.2f} SEK
-        - **Operators Needed:** {manual['operators']}
-        - **Flexibility:** {manual['flexibility']}
+        - **Annual Profit:** {best_data['annual_profit']/1e6:.2f}M SEK
+        - **ROI:** {best_data['roi_percent']:.0f}% per year
+        - **Payback Period:** {best_data['payback_days']:.0f} days
+        - **Initial Investment:** {best_data['capex']:,.0f} SEK
+        - **Profit per Unit:** {best_data['profit_per_unit']:.2f} SEK
+        - **Cost per Unit:** {best_data['cost_per_unit']:.2f} SEK
+        - **Operators Needed:** {best_data['operators']}
+        - **Flexibility:** {best_data['flexibility']}
         """)
     
     with col2:
         st.markdown("#### ⚖️ vs Other Scenarios")
         
-        if best_scenario == 'Manual':
+        if best_idx == 0:  # Manual
             hybrid_diff_profit = manual['annual_profit'] - hybrid['annual_profit']
             hybrid_diff_percent = (hybrid_diff_profit / hybrid['annual_profit']) * 100
             auto_diff_profit = manual['annual_profit'] - automation['annual_profit']
@@ -828,6 +933,33 @@ with tab6:
             - {auto_diff_percent:.0f}% higher profit
             - {automation['payback_days'] - manual['payback_days']:.0f}x faster payback
             - {manual['roi_percent'] - automation['roi_percent']:.0f}% higher ROI
+            """)
+        elif best_idx == 1:  # Hybrid
+            manual_diff_profit = hybrid['annual_profit'] - manual['annual_profit']
+            manual_diff_percent = (manual_diff_profit / manual['annual_profit']) * 100
+            auto_diff_profit = hybrid['annual_profit'] - automation['annual_profit']
+            auto_diff_percent = (auto_diff_profit / automation['annual_profit']) * 100
+            
+            st.markdown(f"""
+            **vs Manual:**
+            - {abs(manual_diff_percent):.0f}% {'lower' if manual_diff_percent < 0 else 'higher'} profit
+            
+            **vs Full Automation:**
+            - {auto_diff_percent:.0f}% higher profit
+            - Reduced operators vs Manual
+            """)
+        else:  # Automation
+            manual_diff_profit = automation['annual_profit'] - manual['annual_profit']
+            manual_diff_percent = (manual_diff_profit / manual['annual_profit']) * 100
+            hybrid_diff_profit = automation['annual_profit'] - hybrid['annual_profit']
+            hybrid_diff_percent = (hybrid_diff_profit / hybrid['annual_profit']) * 100
+            
+            st.markdown(f"""
+            **vs Manual:**
+            - {abs(manual_diff_percent):.0f}% lower profit
+            
+            **vs Hybrid:**
+            - {abs(hybrid_diff_percent):.0f}% lower profit
             """)
     
     st.markdown("---")
@@ -883,19 +1015,27 @@ with tab6:
     
     st.markdown("---")
     
-    st.markdown("""
+    st.markdown(f"""
     #### 📝 Implementation Notes
     
-    **For Manual Assembly:**
-    - Start production immediately with minimal upfront investment
-    - Focus on operator training and quality control
-    - Monitor profitability and reinvest returns
-    - Consider hybrid upgrade if demand exceeds {:.0f} units/year
+    **Current Operational Cost Status:**
+    - Material Cost Multiplier: {material_mult:.1f}x
+    - Labor Cost Multiplier: {labor_mult:.1f}x
+    - Overhead Cost Multiplier: {overhead_mult:.1f}x
+    - Total Cost per Unit: {best_data['cost_per_unit']:.2f} SEK
     
-    **When to Consider Alternatives:**
-    - **Hybrid:** If labor costs rise >20% or demand exceeds 200k units/year
-    - **Automation:** Only for mature, unchanging products with consistent 200k+ unit demand and available capital
-    """.format(production_volume))
+    **Cost Breakdown:**
+    - Material: {best_data['material_cost']:.2f} SEK ({best_data['material_cost']/best_data['cost_per_unit']*100:.1f}%)
+    - Labor: {best_data['labor_cost']:.2f} SEK ({best_data['labor_cost']/best_data['cost_per_unit']*100:.1f}%)
+    - Overhead: {best_data['overhead_cost']:.2f} SEK ({best_data['overhead_cost']/best_data['cost_per_unit']*100:.1f}%)
+    - CAPEX/Unit: {best_data['capex']/(5*production_volume):.2f} SEK ({best_data['capex']/(5*production_volume)/best_data['cost_per_unit']*100:.1f}%)
+    
+    **For {best_scenario}:**
+    - Start with current parameters
+    - Monitor material and labor cost trends
+    - Consider hybrid upgrade if costs rise >20%
+    - Plan for scaling based on volume growth
+    """)
 
 st.markdown("---")
 st.markdown("""
