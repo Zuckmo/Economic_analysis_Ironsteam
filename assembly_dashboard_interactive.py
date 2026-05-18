@@ -118,7 +118,7 @@ with st.sidebar:
     st.caption(f"Multiplier: {hybrid_mult:.1f}x")
 
     st.markdown("**Full Automation CAPEX**")
-    st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 2,576,187 SEK</span>', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 7,658,631 SEK</span>', unsafe_allow_html=True)
     auto_mult = st.slider(
         "Automation CAPEX multiplier",
         min_value=0.5,
@@ -161,7 +161,7 @@ with st.sidebar:
     st.caption(f"Multiplier: {labor_mult:.1f}x")
 
     st.markdown("**Overhead Cost Multiplier**")
-    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 600,000/yr | Hybrid: 600,000/yr | Auto: 30,000/yr</span>', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 600,000/yr | Hybrid: 600,000/yr | Auto: 300,000/yr</span>', unsafe_allow_html=True)
     overhead_mult = st.slider(
         "Overhead cost multiplier",
         min_value=0.5,
@@ -203,11 +203,11 @@ def calculate_scenario(scenario_type, selling_price, production_volume,
         General overhead 600,000/yr | Automation maintenance 8,472/yr
         => Cost/unit 205.35, Profit/unit 24.65, Annual profit 3,697,500
 
-      Full Automation (6.3) - REVISED
-        CAPEX 2,576,187 (5-yr depreciation = 515,237.40/yr)
+      Full Automation (6.3)
+        CAPEX 7,658,631 (5-yr depreciation = 1,531,726.20/yr)
         Material 191.59/unit | Labor 780,480/yr (2 operators)
-        Overhead 30,000/yr | Maintenance 77,286/yr (15% of depreciation)
-        => Cost/unit 200.94, Profit/unit 29.06, Annual profit 4,358,497
+        Overhead 300,000/yr | Maintenance 229,759/yr (15% of depreciation)
+        => Cost/unit 210.54, Profit/unit 19.46, Annual profit 2,919,535
     """
 
     base_data = {
@@ -234,13 +234,13 @@ def calculate_scenario(scenario_type, selling_price, production_volume,
             'flexibility': 'Medium'
         },
         'Full Automation': {
-            'base_capex': 2576187,                   # REVISED (Total automation CAPEX)
+            'base_capex': 7658631,
             'depreciation_years': 5,
             'material_per_unit': 191.59,
             'labor_model': 'annual',
             'annual_labor': 780480,                  # 2 operators (6.3.2)
-            'annual_overhead': 30000,                # REVISED
-            'annual_maintenance': 77286.0,           # REVISED (15% of annual depreciation)
+            'annual_overhead': 300000,
+            'annual_maintenance': 229758.93,         # 15% of annual depreciation
             'operators': 2,
             'flexibility': 'Low'
         }
