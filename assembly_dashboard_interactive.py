@@ -1,14 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
 import numpy as np
 
 # Configure page
 st.set_page_config(
     page_title="Assembly Project - Economic Analysis Dashboard",
-    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -20,12 +17,10 @@ st.markdown("""
             background-color: #0F1419;
             color: #F5F7FA;
         }
-        
         h1, h2, h3 {
             color: #F5F7FA;
             font-weight: 700;
         }
-        
         .metric-box {
             background: linear-gradient(135deg, #1a2332 0%, #0f1419 100%);
             border-left: 4px solid;
@@ -33,7 +28,6 @@ st.markdown("""
             border-radius: 8px;
             margin-bottom: 15px;
         }
-        
         .section-header {
             font-size: 20px;
             font-weight: 700;
@@ -62,13 +56,12 @@ if 'overhead_cost_mult' not in st.session_state:
 if 'material_cost_mult' not in st.session_state:
     st.session_state.material_cost_mult = 1.0
 
-# ==================== SIDEBAR - SIMULASI PARAMETER ====================
+# ==================== SIDEBAR - SIMULATION PARAMETERS ====================
 with st.sidebar:
-    st.markdown("### 🎛️ SIMULATION PARAMETERS")
+    st.markdown("### SIMULATION PARAMETERS")
     st.markdown("---")
-    
-    # Selling Price Slider
-    st.markdown("#### 💰 Selling Price per Unit (SEK)")
+
+    st.markdown("#### Selling Price per Unit (SEK)")
     selling_price = st.slider(
         "Adjust selling price",
         min_value=200.0,
@@ -79,11 +72,10 @@ with st.sidebar:
     )
     st.session_state.selling_price = selling_price
     st.info(f"Current price: **{selling_price:.2f} SEK/unit**")
-    
+
     st.markdown("---")
-    
-    # Production Volume Slider
-    st.markdown("#### 📦 Annual Production Volume (units)")
+
+    st.markdown("#### Annual Production Volume (units)")
     production_volume = st.slider(
         "Adjust production volume",
         min_value=50000,
@@ -94,12 +86,11 @@ with st.sidebar:
     )
     st.session_state.production_volume = production_volume
     st.info(f"Current volume: **{production_volume:,.0f} units/year**")
-    
+
     st.markdown("---")
-    
-    # CAPEX Multipliers
-    st.markdown("#### 🏗️ CAPEX Cost Adjustment")
-    
+
+    st.markdown("#### CAPEX Cost Adjustment")
+
     st.markdown("**Manual Assembly CAPEX**")
     st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 388,100 SEK</span>', unsafe_allow_html=True)
     manual_mult = st.slider(
@@ -112,7 +103,7 @@ with st.sidebar:
     )
     st.session_state.manual_capex_mult = manual_mult
     st.caption(f"Multiplier: {manual_mult:.1f}x")
-    
+
     st.markdown("**Hybrid Assembly CAPEX**")
     st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 444,581 SEK</span>', unsafe_allow_html=True)
     hybrid_mult = st.slider(
@@ -125,7 +116,7 @@ with st.sidebar:
     )
     st.session_state.hybrid_capex_mult = hybrid_mult
     st.caption(f"Multiplier: {hybrid_mult:.1f}x")
-    
+
     st.markdown("**Full Automation CAPEX**")
     st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 7,658,631 SEK</span>', unsafe_allow_html=True)
     auto_mult = st.slider(
@@ -138,12 +129,11 @@ with st.sidebar:
     )
     st.session_state.auto_capex_mult = auto_mult
     st.caption(f"Multiplier: {auto_mult:.1f}x")
-    
+
     st.markdown("---")
-    
-    # Operational Cost Multipliers
-    st.markdown("#### 💼 Operational Cost Adjustment")
-    
+
+    st.markdown("#### Operational Cost Adjustment")
+
     st.markdown("**Material Cost Multiplier**")
     st.markdown('<span style="font-size: 0.85em; color: #888;">Base: 191.59 SEK/unit (all scenarios)</span>', unsafe_allow_html=True)
     material_mult = st.slider(
@@ -156,9 +146,9 @@ with st.sidebar:
     )
     st.session_state.material_cost_mult = material_mult
     st.caption(f"Multiplier: {material_mult:.1f}x")
-    
+
     st.markdown("**Labor Cost Multiplier**")
-    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 2.74 | Hybrid: 9.11 | Auto: 0.52 (SEK/unit)</span>', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 2.74/unit | Hybrid: 1,365,840/yr | Auto: 780,480/yr</span>', unsafe_allow_html=True)
     labor_mult = st.slider(
         "Labor cost multiplier",
         min_value=0.5,
@@ -169,9 +159,9 @@ with st.sidebar:
     )
     st.session_state.labor_cost_mult = labor_mult
     st.caption(f"Multiplier: {labor_mult:.1f}x")
-    
+
     st.markdown("**Overhead Cost Multiplier**")
-    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 4.00 | Hybrid: 4.06 | Auto: 4.42 (SEK/unit)</span>', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 0.85em; color: #888;">Manual: 600,000/yr | Hybrid: 600,000/yr | Auto: 300,000/yr</span>', unsafe_allow_html=True)
     overhead_mult = st.slider(
         "Overhead cost multiplier",
         min_value=0.5,
@@ -182,89 +172,125 @@ with st.sidebar:
     )
     st.session_state.overhead_cost_mult = overhead_mult
     st.caption(f"Multiplier: {overhead_mult:.1f}x")
-    
+
     st.markdown("---")
-    st.markdown("**💡 Tips:**")
+    st.markdown("**Tips:**")
     st.markdown("""
     - **Material:** Supplier price changes, bulk discounts
     - **Labor:** Wage increases, productivity improvements
     - **Overhead:** Facility costs, utilities, maintenance
     """)
-    st.markdown("**💡 Adjust sliders to simulate cost inflation or efficiency improvements!")
+    st.markdown("**Adjust sliders to simulate cost inflation or efficiency improvements.**")
 
 # ==================== CALCULATE DYNAMICS DATA ====================
 
-def calculate_scenario(scenario_type, selling_price, production_volume, capex_multiplier, material_mult, labor_mult, overhead_mult):
-    """Calculate financial metrics based on parameters"""
-    
-    # Base data from PDF
+def calculate_scenario(scenario_type, selling_price, production_volume,
+                        capex_multiplier, material_mult, labor_mult, overhead_mult):
+    """
+    Calculate financial metrics based on parameters.
+
+    Base figures taken directly from the Final Report (Section 6):
+
+      Manual Assembly (6.2)
+        CAPEX 388,100 (5-yr depreciation = 77,620/yr)
+        Material 191.59/unit | Labor 2.74/unit (cycle-time based)
+        Overhead 600,000/yr | no separate maintenance
+        => Cost/unit 198.85, Profit/unit 31.15, Annual profit 4,672,299
+
+      Hybrid Assembly (6.4) - 4 stations automated (F, Q, R, Z)
+        CAPEX 444,581 (5-yr depreciation = 88,916/yr)
+        Material 191.59/unit | Labor 1,365,840/yr (7 operators)
+        General overhead 600,000/yr | Automation maintenance 8,472/yr
+        => Cost/unit 205.35, Profit/unit 24.65, Annual profit 3,697,500
+
+      Full Automation (6.3)
+        CAPEX 7,658,631 (5-yr depreciation = 1,531,726.20/yr)
+        Material 191.59/unit | Labor 780,480/yr (2 operators)
+        Overhead 300,000/yr | Maintenance 229,759/yr (15% of depreciation)
+        => Cost/unit 210.54, Profit/unit 19.46, Annual profit 2,919,535
+    """
+
     base_data = {
         'Manual': {
             'base_capex': 388100,
-            'material_cost': 191.59,
-            'labor_cost': 2.74,
-            'overhead_cost': 4.00,
+            'depreciation_years': 5,
+            'material_per_unit': 191.59,
+            'labor_model': 'per_unit',
+            'labor_per_unit': 2.7438749999999996,   # cycle-time based (6.2.3)
+            'annual_overhead': 600000,
+            'annual_maintenance': 0.0,               # no separate maintenance line
             'operators': 10,
-            'payback_base': 29,
             'flexibility': 'High'
         },
         'Hybrid': {
             'base_capex': 444581,
-            'material_cost': 191.59,
-            'labor_cost': 9.11,
-            'overhead_cost': 4.06,
+            'depreciation_years': 5,
+            'material_per_unit': 191.59,
+            'labor_model': 'annual',
+            'annual_labor': 1365840,                 # 7 operators (6.4.3)
+            'annual_overhead': 600000,               # general overhead, same as manual
+            'annual_maintenance': 8472.0,            # 15% of automation portion (6.4.4)
             'operators': 7,
-            'payback_base': 44,
             'flexibility': 'Medium'
         },
         'Full Automation': {
             'base_capex': 7658631,
-            'material_cost': 191.59,
-            'labor_cost': 0.52,
-            'overhead_cost': 4.42,
+            'depreciation_years': 5,
+            'material_per_unit': 191.59,
+            'labor_model': 'annual',
+            'annual_labor': 780480,                  # 2 operators (6.3.2)
+            'annual_overhead': 300000,
+            'annual_maintenance': 229758.93,         # 15% of annual depreciation
             'operators': 2,
-            'payback_base': 949,
             'flexibility': 'Low'
         }
     }
-    
+
     data = base_data[scenario_type]
-    
-    # Adjust CAPEX
+
+    # CAPEX & depreciation (maintenance scales with the same CAPEX multiplier)
     adjusted_capex = data['base_capex'] * capex_multiplier
-    capex_per_unit = adjusted_capex / 5 / production_volume  # 5 year depreciation
-    
-    # Adjust operational costs
-    adjusted_material_cost = data['material_cost'] * material_mult
-    adjusted_labor_cost = data['labor_cost'] * labor_mult
-    adjusted_overhead_cost = data['overhead_cost'] * overhead_mult
-    
-    # Calculate costs
-    cost_per_unit = adjusted_material_cost + adjusted_labor_cost + adjusted_overhead_cost + capex_per_unit
+    annual_depreciation = adjusted_capex / data['depreciation_years']
+    annual_maintenance = data['annual_maintenance'] * capex_multiplier
+
+    # Per-unit cost components
+    material_cost = data['material_per_unit'] * material_mult
+
+    if data['labor_model'] == 'per_unit':
+        labor_cost = data['labor_per_unit'] * labor_mult
+    else:
+        labor_cost = (data['annual_labor'] * labor_mult) / production_volume
+
+    overhead_cost = (data['annual_overhead'] * overhead_mult) / production_volume
+    maintenance_cost = annual_maintenance / production_volume
+    capex_per_unit = annual_depreciation / production_volume
+
+    cost_per_unit = (material_cost + labor_cost + overhead_cost +
+                     maintenance_cost + capex_per_unit)
     profit_per_unit = selling_price - cost_per_unit
-    
+
     # Financial calculations
     annual_revenue = selling_price * production_volume
     total_annual_cost = cost_per_unit * production_volume
     annual_profit = profit_per_unit * production_volume
-    
+
     monthly_profit = annual_profit / 12
-    daily_profit = annual_profit / 250
-    
+    daily_profit = annual_profit / 365
+
     profit_margin = (profit_per_unit / selling_price) * 100 if selling_price > 0 else 0
-    
-    # Payback period (adjusted based on profit change)
-    if profit_per_unit > 0 and annual_profit > 0:
-        payback_days = adjusted_capex / (annual_profit / 365)
+
+    # Payback period (CAPEX recovered from annual profit)
+    if annual_profit > 0 and adjusted_capex > 0:
+        payback_days = (adjusted_capex / annual_profit) * 365
     else:
         payback_days = 999999
-    
+
     # ROI
     if annual_profit > 0 and adjusted_capex > 0:
         roi_percent = (annual_profit / adjusted_capex) * 100
     else:
         roi_percent = 0
-    
+
     return {
         'capex': adjusted_capex,
         'cost_per_unit': cost_per_unit,
@@ -280,15 +306,20 @@ def calculate_scenario(scenario_type, selling_price, production_volume, capex_mu
         'roi_percent': roi_percent,
         'operators': data['operators'],
         'flexibility': data['flexibility'],
-        'material_cost': adjusted_material_cost,
-        'labor_cost': adjusted_labor_cost,
-        'overhead_cost': adjusted_overhead_cost
+        'material_cost': material_cost,
+        'labor_cost': labor_cost,
+        'overhead_cost': overhead_cost,
+        'maintenance_cost': maintenance_cost,
+        'capex_per_unit': capex_per_unit
     }
 
 # Calculate all scenarios
-manual = calculate_scenario('Manual', selling_price, production_volume, manual_mult, material_mult, labor_mult, overhead_mult)
-hybrid = calculate_scenario('Hybrid', selling_price, production_volume, hybrid_mult, material_mult, labor_mult, overhead_mult)
-automation = calculate_scenario('Full Automation', selling_price, production_volume, auto_mult, material_mult, labor_mult, overhead_mult)
+manual = calculate_scenario('Manual', selling_price, production_volume,
+                            manual_mult, material_mult, labor_mult, overhead_mult)
+hybrid = calculate_scenario('Hybrid', selling_price, production_volume,
+                            hybrid_mult, material_mult, labor_mult, overhead_mult)
+automation = calculate_scenario('Full Automation', selling_price, production_volume,
+                                auto_mult, material_mult, labor_mult, overhead_mult)
 
 scenarios_dict = {
     'Manual': manual,
@@ -306,7 +337,7 @@ colors_dict = {
 # ==================== MAIN HEADER ====================
 st.markdown("""
     <h1 style='text-align: center; margin-bottom: 10px;'>
-        🏭 Assembly Project - Economic Analysis Dashboard
+        Assembly Project - Economic Analysis Dashboard
     </h1>
     <p style='text-align: center; color: #00D9FF; font-size: 1.1em;'>
         Dynamic Financial & Operational Comparison with Real-time Simulation
@@ -315,25 +346,25 @@ st.markdown("""
 
 # ==================== TAB NAVIGATION ====================
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📊 Overview",
+    "Overview",
     "6.1 Basic Assumptions",
     "6.2-6.4 Financial Analysis",
     "6.5 Comparison",
-    "💡 Scenarios",
-    "🎯 Recommendation"
+    "Scenarios",
+    "Recommendation"
 ])
 
 # ==================== TAB 1: OVERVIEW ====================
 with tab1:
-    st.markdown("### 📈 Quick Summary - Current Simulation")
-    
+    st.markdown("### Quick Summary - Current Simulation")
+
     col1, col2, col3 = st.columns(3)
-    
-    for idx, (col, scenario_name) in enumerate(zip([col1, col2, col3], scenarios_list)):
+
+    for col, scenario_name in zip([col1, col2, col3], scenarios_list):
         with col:
             data = scenarios_dict[scenario_name]
             color = colors_dict[scenario_name]
-            
+
             st.markdown(f"""
                 <div style='background: linear-gradient(135deg, {color}20 0%, {color}05 100%);
                             border: 2px solid {color}; border-radius: 10px; padding: 20px;'>
@@ -378,44 +409,30 @@ with tab1:
                     </div>
                 </div>
             """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
-    # Cost Breakdown
-    st.markdown("### 💰 Cost Breakdown per Unit (Current Simulation)")
-    
+
+    st.markdown("### Cost Breakdown per Unit (Current Simulation)")
+
     cost_breakdown = {
-        'Cost Component': ['Material', 'Labor', 'Overhead', 'CAPEX/Unit', 'Total'],
-        'Manual': [
-            f"{manual['material_cost']:.2f}",
-            f"{manual['labor_cost']:.2f}",
-            f"{manual['overhead_cost']:.2f}",
-            f"{manual['capex']/(5*production_volume):.2f}",
-            f"{manual['cost_per_unit']:.2f}"
-        ],
-        'Hybrid': [
-            f"{hybrid['material_cost']:.2f}",
-            f"{hybrid['labor_cost']:.2f}",
-            f"{hybrid['overhead_cost']:.2f}",
-            f"{hybrid['capex']/(5*production_volume):.2f}",
-            f"{hybrid['cost_per_unit']:.2f}"
-        ],
-        'Full Automation': [
-            f"{automation['material_cost']:.2f}",
-            f"{automation['labor_cost']:.2f}",
-            f"{automation['overhead_cost']:.2f}",
-            f"{automation['capex']/(5*production_volume):.2f}",
-            f"{automation['cost_per_unit']:.2f}"
-        ]
+        'Cost Component': ['Material', 'Labor', 'Overhead', 'Maintenance', 'CAPEX/Unit', 'Total'],
     }
-    
-    cost_df = pd.DataFrame(cost_breakdown)
-    st.dataframe(cost_df, use_container_width=True, hide_index=True)
-    
+    for name in scenarios_list:
+        d = scenarios_dict[name]
+        cost_breakdown[name] = [
+            f"{d['material_cost']:.2f}",
+            f"{d['labor_cost']:.2f}",
+            f"{d['overhead_cost']:.2f}",
+            f"{d['maintenance_cost']:.2f}",
+            f"{d['capex_per_unit']:.2f}",
+            f"{d['cost_per_unit']:.2f}"
+        ]
+
+    st.dataframe(pd.DataFrame(cost_breakdown), use_container_width=True, hide_index=True)
+
     st.markdown("---")
-    
-    # Comparison Table
-    st.markdown("### 📊 Detailed Comparison Table")
+
+    st.markdown("### Detailed Comparison Table")
     comparison_data = {
         'Metric': [
             'CAPEX (SEK)',
@@ -432,70 +449,39 @@ with tab1:
             'ROI (% per year)',
             'Operators',
             'Flexibility'
-        ],
-        'Manual': [
-            f"{manual['capex']:,.0f}",
-            f"{manual['cost_per_unit']:.2f}",
-            f"{manual['selling_price']:.2f}",
-            f"{manual['profit_per_unit']:.2f}",
-            f"{manual['profit_margin']:.2f}%",
-            f"{manual['annual_revenue']:,.0f}",
-            f"{manual['total_annual_cost']:,.0f}",
-            f"{manual['annual_profit']:,.0f}",
-            f"{manual['monthly_profit']:,.0f}",
-            f"{manual['daily_profit']:,.0f}",
-            f"{manual['payback_days']:.0f}",
-            f"{manual['roi_percent']:.0f}%",
-            str(manual['operators']),
-            manual['flexibility']
-        ],
-        'Hybrid': [
-            f"{hybrid['capex']:,.0f}",
-            f"{hybrid['cost_per_unit']:.2f}",
-            f"{hybrid['selling_price']:.2f}",
-            f"{hybrid['profit_per_unit']:.2f}",
-            f"{hybrid['profit_margin']:.2f}%",
-            f"{hybrid['annual_revenue']:,.0f}",
-            f"{hybrid['total_annual_cost']:,.0f}",
-            f"{hybrid['annual_profit']:,.0f}",
-            f"{hybrid['monthly_profit']:,.0f}",
-            f"{hybrid['daily_profit']:,.0f}",
-            f"{hybrid['payback_days']:.0f}",
-            f"{hybrid['roi_percent']:.0f}%",
-            str(hybrid['operators']),
-            hybrid['flexibility']
-        ],
-        'Full Automation': [
-            f"{automation['capex']:,.0f}",
-            f"{automation['cost_per_unit']:.2f}",
-            f"{automation['selling_price']:.2f}",
-            f"{automation['profit_per_unit']:.2f}",
-            f"{automation['profit_margin']:.2f}%",
-            f"{automation['annual_revenue']:,.0f}",
-            f"{automation['total_annual_cost']:,.0f}",
-            f"{automation['annual_profit']:,.0f}",
-            f"{automation['monthly_profit']:,.0f}",
-            f"{automation['daily_profit']:,.0f}",
-            f"{automation['payback_days']:.0f}",
-            f"{automation['roi_percent']:.0f}%",
-            str(automation['operators']),
-            automation['flexibility']
         ]
     }
-    
-    comparison_df = pd.DataFrame(comparison_data)
-    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    for name in scenarios_list:
+        d = scenarios_dict[name]
+        comparison_data[name] = [
+            f"{d['capex']:,.0f}",
+            f"{d['cost_per_unit']:.2f}",
+            f"{d['selling_price']:.2f}",
+            f"{d['profit_per_unit']:.2f}",
+            f"{d['profit_margin']:.2f}%",
+            f"{d['annual_revenue']:,.0f}",
+            f"{d['total_annual_cost']:,.0f}",
+            f"{d['annual_profit']:,.0f}",
+            f"{d['monthly_profit']:,.0f}",
+            f"{d['daily_profit']:,.0f}",
+            f"{d['payback_days']:.0f}",
+            f"{d['roi_percent']:.0f}%",
+            str(d['operators']),
+            d['flexibility']
+        ]
+
+    st.dataframe(pd.DataFrame(comparison_data), use_container_width=True, hide_index=True)
 
 # ==================== TAB 2: BASIC ASSUMPTIONS ====================
 with tab2:
     st.markdown("""
         ### 6.1 Basic Assumptions
-        
+
         The economic analysis is based on the following fundamental parameters:
     """)
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("#### Annual Demand & Production")
         assumption_data = {
@@ -517,7 +503,7 @@ with tab2:
             ]
         }
         st.dataframe(pd.DataFrame(assumption_data), use_container_width=True, hide_index=True)
-    
+
     with col2:
         st.markdown("#### Takt Time & Efficiency")
         takt_data = {
@@ -525,21 +511,23 @@ with tab2:
                 'Takt Time (Minutes)',
                 'Takt Time (Seconds)',
                 'Actual Bottleneck Cycle Time',
+                'Actual Cycle Time (Minutes)',
                 'Takt Compliance %'
             ],
             'Value': [
                 '1.9 minutes',
                 '115 seconds',
                 '121.5 seconds',
-                '94.8%'
+                '2.025 minutes',
+                '94.85%'
             ]
         }
         st.dataframe(pd.DataFrame(takt_data), use_container_width=True, hide_index=True)
-    
+
     st.markdown("---")
-    
+
     col3, col4 = st.columns(2)
-    
+
     with col3:
         st.markdown("#### Workstation Configuration")
         station_data = {
@@ -557,7 +545,7 @@ with tab2:
             ]
         }
         st.dataframe(pd.DataFrame(station_data), use_container_width=True, hide_index=True)
-    
+
     with col4:
         st.markdown("#### Overall Efficiency Metrics")
         efficiency_data = {
@@ -565,12 +553,14 @@ with tab2:
                 'Line Balancing Efficiency',
                 'Takt Compliance',
                 'Station Utilization',
+                'Production Capacity Efficiency',
                 'Workstation Efficiency'
             ],
             'Value': [
                 '94.37%',
                 '94.85%',
                 '94.37%',
+                '105.53%',
                 '100%'
             ]
         }
@@ -578,16 +568,15 @@ with tab2:
 
 # ==================== TAB 3: FINANCIAL ANALYSIS ====================
 with tab3:
-    st.markdown("### 6.2-6.4 Financial Analysis (Manual, Hybrid, & Automation)")
-    
+    st.markdown("### 6.2-6.4 Financial Analysis (Manual, Hybrid & Automation)")
+
+    colors = [colors_dict[s] for s in scenarios_list]
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        # Annual Profit Comparison
         fig_profit = go.Figure()
-        profits = [manual['annual_profit'], hybrid['annual_profit'], automation['annual_profit']]
-        colors = [colors_dict['Manual'], colors_dict['Hybrid'], colors_dict['Full Automation']]
-        
+        profits = [scenarios_dict[s]['annual_profit'] for s in scenarios_list]
         fig_profit.add_trace(go.Bar(
             x=scenarios_list,
             y=profits,
@@ -595,7 +584,6 @@ with tab3:
             text=[f"{p/1e6:.2f}M" for p in profits],
             textposition='outside'
         ))
-        
         fig_profit.update_layout(
             title="Annual Profit Comparison",
             yaxis_title="Profit (SEK)",
@@ -604,13 +592,10 @@ with tab3:
             showlegend=False
         )
         st.plotly_chart(fig_profit, use_container_width=True)
-    
+
     with col2:
-        # Cost vs Price
         fig_cost = go.Figure()
-        
-        cost_list = [manual['cost_per_unit'], hybrid['cost_per_unit'], automation['cost_per_unit']]
-        
+        cost_list = [scenarios_dict[s]['cost_per_unit'] for s in scenarios_list]
         fig_cost.add_trace(go.Bar(
             name='Cost/Unit',
             x=scenarios_list,
@@ -619,16 +604,14 @@ with tab3:
             text=[f"{c:.2f}" for c in cost_list],
             textposition='outside'
         ))
-        
         fig_cost.add_trace(go.Bar(
             name='Selling Price',
             x=scenarios_list,
-            y=[selling_price] * 3,
+            y=[selling_price] * len(scenarios_list),
             marker=dict(color='rgba(107, 255, 107, 0.8)'),
-            text=[f"{selling_price:.2f}"] * 3,
+            text=[f"{selling_price:.2f}"] * len(scenarios_list),
             textposition='outside'
         ))
-        
         fig_cost.update_layout(
             title="Cost vs Selling Price",
             yaxis_title="Price (SEK)",
@@ -637,14 +620,12 @@ with tab3:
             barmode='group'
         )
         st.plotly_chart(fig_cost, use_container_width=True)
-    
+
     col3, col4 = st.columns(2)
-    
+
     with col3:
-        # Profit per Unit
         fig_profit_unit = go.Figure()
-        profit_units = [manual['profit_per_unit'], hybrid['profit_per_unit'], automation['profit_per_unit']]
-        
+        profit_units = [scenarios_dict[s]['profit_per_unit'] for s in scenarios_list]
         fig_profit_unit.add_trace(go.Bar(
             x=scenarios_list,
             y=profit_units,
@@ -652,7 +633,6 @@ with tab3:
             text=[f"{p:.2f}" for p in profit_units],
             textposition='outside'
         ))
-        
         fig_profit_unit.update_layout(
             title="Profit per Unit",
             yaxis_title="Profit (SEK)",
@@ -661,12 +641,10 @@ with tab3:
             showlegend=False
         )
         st.plotly_chart(fig_profit_unit, use_container_width=True)
-    
+
     with col4:
-        # CAPEX
         fig_capex = go.Figure()
-        capex_list = [manual['capex'], hybrid['capex'], automation['capex']]
-        
+        capex_list = [scenarios_dict[s]['capex'] for s in scenarios_list]
         fig_capex.add_trace(go.Bar(
             x=scenarios_list,
             y=capex_list,
@@ -674,7 +652,6 @@ with tab3:
             text=[f"{c/1e6:.2f}M" for c in capex_list],
             textposition='outside'
         ))
-        
         fig_capex.update_layout(
             title="Initial Investment (CAPEX)",
             yaxis_title="CAPEX (SEK)",
@@ -687,14 +664,14 @@ with tab3:
 # ==================== TAB 4: COMPARISON ====================
 with tab4:
     st.markdown("### 6.5 Comparison of All Three Assembly Scenarios")
-    
+
+    colors = [colors_dict[s] for s in scenarios_list]
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        # ROI Comparison
         fig_roi = go.Figure()
-        roi_list = [manual['roi_percent'], hybrid['roi_percent'], automation['roi_percent']]
-        
+        roi_list = [scenarios_dict[s]['roi_percent'] for s in scenarios_list]
         fig_roi.add_trace(go.Bar(
             x=scenarios_list,
             y=roi_list,
@@ -702,7 +679,6 @@ with tab4:
             text=[f"{r:.0f}%" for r in roi_list],
             textposition='outside'
         ))
-        
         fig_roi.update_layout(
             title="ROI per Year",
             yaxis_title="ROI (%)",
@@ -711,12 +687,10 @@ with tab4:
             showlegend=False
         )
         st.plotly_chart(fig_roi, use_container_width=True)
-    
+
     with col2:
-        # Payback Period
         fig_payback = go.Figure()
-        payback_list = [manual['payback_days'], hybrid['payback_days'], automation['payback_days']]
-        
+        payback_list = [scenarios_dict[s]['payback_days'] for s in scenarios_list]
         fig_payback.add_trace(go.Bar(
             x=scenarios_list,
             y=payback_list,
@@ -724,7 +698,6 @@ with tab4:
             text=[f"{p:.0f} days" for p in payback_list],
             textposition='outside'
         ))
-        
         fig_payback.update_layout(
             title="Payback Period",
             yaxis_title="Days",
@@ -733,14 +706,12 @@ with tab4:
             showlegend=False
         )
         st.plotly_chart(fig_payback, use_container_width=True)
-    
+
     col3, col4 = st.columns(2)
-    
+
     with col3:
-        # Operators
         fig_operators = go.Figure()
-        operators_list = [manual['operators'], hybrid['operators'], automation['operators']]
-        
+        operators_list = [scenarios_dict[s]['operators'] for s in scenarios_list]
         fig_operators.add_trace(go.Bar(
             x=scenarios_list,
             y=operators_list,
@@ -748,7 +719,6 @@ with tab4:
             text=operators_list,
             textposition='outside'
         ))
-        
         fig_operators.update_layout(
             title="Operators Required",
             yaxis_title="Number of Operators",
@@ -757,12 +727,10 @@ with tab4:
             showlegend=False
         )
         st.plotly_chart(fig_operators, use_container_width=True)
-    
+
     with col4:
-        # Profit Margin
         fig_margin = go.Figure()
-        margins = [manual['profit_margin'], hybrid['profit_margin'], automation['profit_margin']]
-        
+        margins = [scenarios_dict[s]['profit_margin'] for s in scenarios_list]
         fig_margin.add_trace(go.Bar(
             x=scenarios_list,
             y=margins,
@@ -770,7 +738,6 @@ with tab4:
             text=[f"{m:.2f}%" for m in margins],
             textposition='outside'
         ))
-        
         fig_margin.update_layout(
             title="Profit Margin %",
             yaxis_title="Margin (%)",
@@ -782,8 +749,8 @@ with tab4:
 
 # ==================== TAB 5: SCENARIO ANALYSIS ====================
 with tab5:
-    st.markdown("### 💡 What-If Scenario Analysis")
-    
+    st.markdown("### What-If Scenario Analysis")
+
     st.markdown(f"""
     **Current Simulation Parameters:**
     - **Selling Price:** {selling_price:.2f} SEK
@@ -795,38 +762,25 @@ with tab5:
     - **Labor Cost Multiplier:** {labor_mult:.1f}x
     - **Overhead Cost Multiplier:** {overhead_mult:.1f}x
     """)
-    
+
     st.markdown("---")
-    
-    # Sensitivity Analysis - Price Impact
+
+    mults = {'Manual': manual_mult, 'Hybrid': hybrid_mult, 'Full Automation': auto_mult}
+
     st.markdown("#### Price Sensitivity Analysis")
     price_range = np.arange(200, 301, 10)
-    manual_profit_by_price = []
-    hybrid_profit_by_price = []
-    auto_profit_by_price = []
-    
+    sens = {s: [] for s in scenarios_list}
     for p in price_range:
-        m = calculate_scenario('Manual', p, production_volume, manual_mult, material_mult, labor_mult, overhead_mult)
-        h = calculate_scenario('Hybrid', p, production_volume, hybrid_mult, material_mult, labor_mult, overhead_mult)
-        a = calculate_scenario('Full Automation', p, production_volume, auto_mult, material_mult, labor_mult, overhead_mult)
-        manual_profit_by_price.append(m['annual_profit'])
-        hybrid_profit_by_price.append(h['annual_profit'])
-        auto_profit_by_price.append(a['annual_profit'])
-    
+        for s in scenarios_list:
+            r = calculate_scenario(s, p, production_volume, mults[s], material_mult, labor_mult, overhead_mult)
+            sens[s].append(r['annual_profit'])
+
     fig_sensitivity = go.Figure()
-    fig_sensitivity.add_trace(go.Scatter(
-        x=price_range, y=np.array(manual_profit_by_price)/1e6,
-        mode='lines+markers', name='Manual', line=dict(color='#00D9FF', width=3)
-    ))
-    fig_sensitivity.add_trace(go.Scatter(
-        x=price_range, y=np.array(hybrid_profit_by_price)/1e6,
-        mode='lines+markers', name='Hybrid', line=dict(color='#FFB700', width=3)
-    ))
-    fig_sensitivity.add_trace(go.Scatter(
-        x=price_range, y=np.array(auto_profit_by_price)/1e6,
-        mode='lines+markers', name='Full Automation', line=dict(color='#FF006E', width=3)
-    ))
-    
+    for s in scenarios_list:
+        fig_sensitivity.add_trace(go.Scatter(
+            x=price_range, y=np.array(sens[s])/1e6,
+            mode='lines+markers', name=s, line=dict(color=colors_dict[s], width=3)
+        ))
     fig_sensitivity.update_layout(
         title="Annual Profit vs Selling Price",
         xaxis_title="Selling Price (SEK)",
@@ -836,38 +790,23 @@ with tab5:
         hovermode='x unified'
     )
     st.plotly_chart(fig_sensitivity, use_container_width=True)
-    
+
     st.markdown("---")
-    
-    # Volume Sensitivity
+
     st.markdown("#### Production Volume Impact")
     volume_range = np.arange(50000, 301000, 20000)
-    manual_profit_by_vol = []
-    hybrid_profit_by_vol = []
-    auto_profit_by_vol = []
-    
+    volp = {s: [] for s in scenarios_list}
     for v in volume_range:
-        m = calculate_scenario('Manual', selling_price, v, manual_mult, material_mult, labor_mult, overhead_mult)
-        h = calculate_scenario('Hybrid', selling_price, v, hybrid_mult, material_mult, labor_mult, overhead_mult)
-        a = calculate_scenario('Full Automation', selling_price, v, auto_mult, material_mult, labor_mult, overhead_mult)
-        manual_profit_by_vol.append(m['annual_profit'])
-        hybrid_profit_by_vol.append(h['annual_profit'])
-        auto_profit_by_vol.append(a['annual_profit'])
-    
+        for s in scenarios_list:
+            r = calculate_scenario(s, selling_price, v, mults[s], material_mult, labor_mult, overhead_mult)
+            volp[s].append(r['annual_profit'])
+
     fig_volume = go.Figure()
-    fig_volume.add_trace(go.Scatter(
-        x=volume_range/1000, y=np.array(manual_profit_by_vol)/1e6,
-        mode='lines+markers', name='Manual', line=dict(color='#00D9FF', width=3)
-    ))
-    fig_volume.add_trace(go.Scatter(
-        x=volume_range/1000, y=np.array(hybrid_profit_by_vol)/1e6,
-        mode='lines+markers', name='Hybrid', line=dict(color='#FFB700', width=3)
-    ))
-    fig_volume.add_trace(go.Scatter(
-        x=volume_range/1000, y=np.array(auto_profit_by_vol)/1e6,
-        mode='lines+markers', name='Full Automation', line=dict(color='#FF006E', width=3)
-    ))
-    
+    for s in scenarios_list:
+        fig_volume.add_trace(go.Scatter(
+            x=volume_range/1000, y=np.array(volp[s])/1e6,
+            mode='lines+markers', name=s, line=dict(color=colors_dict[s], width=3)
+        ))
     fig_volume.update_layout(
         title="Annual Profit vs Production Volume",
         xaxis_title="Production Volume (k units)",
@@ -880,29 +819,28 @@ with tab5:
 
 # ==================== TAB 6: RECOMMENDATION ====================
 with tab6:
-    st.markdown("### 🎯 Strategic Recommendation")
-    
-    # Determine best scenario
-    profits = [manual['annual_profit'], hybrid['annual_profit'], automation['annual_profit']]
+    st.markdown("### Strategic Recommendation")
+
+    profits = [scenarios_dict[s]['annual_profit'] for s in scenarios_list]
     best_idx = profits.index(max(profits))
     best_scenario = scenarios_list[best_idx]
     best_data = scenarios_dict[best_scenario]
-    
+
     st.markdown(f"""
         <div style='background: linear-gradient(135deg, {colors_dict[best_scenario]}20 0%, {colors_dict[best_scenario]}05 100%);
                     border-left: 4px solid {colors_dict[best_scenario]}; border-radius: 8px; padding: 20px; margin-bottom: 20px;'>
-            <h3 style='color: {colors_dict[best_scenario]}; margin-top: 0;'>✅ RECOMMENDED: {best_scenario}</h3>
+            <h3 style='color: {colors_dict[best_scenario]}; margin-top: 0;'>RECOMMENDED: {best_scenario}</h3>
             <p style='font-size: 1.05em; line-height: 1.6;'>
                 Based on current simulation parameters, <b>{best_scenario}</b> provides the best financial performance
                 with an annual profit of <b>{best_data['annual_profit']/1e6:.2f}M SEK</b> and ROI of <b>{best_data['roi_percent']:.0f}%</b> per year.
             </p>
         </div>
     """, unsafe_allow_html=True)
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        st.markdown("#### 💡 Key Advantages")
+        st.markdown("#### Key Advantages")
         st.markdown(f"""
         - **Annual Profit:** {best_data['annual_profit']/1e6:.2f}M SEK
         - **ROI:** {best_data['roi_percent']:.0f}% per year
@@ -913,61 +851,29 @@ with tab6:
         - **Operators Needed:** {best_data['operators']}
         - **Flexibility:** {best_data['flexibility']}
         """)
-    
+
     with col2:
-        st.markdown("#### ⚖️ vs Other Scenarios")
-        
-        if best_idx == 0:  # Manual
-            hybrid_diff_profit = manual['annual_profit'] - hybrid['annual_profit']
-            hybrid_diff_percent = (hybrid_diff_profit / hybrid['annual_profit']) * 100
-            auto_diff_profit = manual['annual_profit'] - automation['annual_profit']
-            auto_diff_percent = (auto_diff_profit / automation['annual_profit']) * 100
-            
-            st.markdown(f"""
-            **vs Hybrid:**
-            - {hybrid_diff_percent:.0f}% higher profit
-            - {manual['payback_days'] - hybrid['payback_days']:.0f} days faster payback
-            - {manual['roi_percent'] - hybrid['roi_percent']:.0f}% higher ROI
-            
-            **vs Full Automation:**
-            - {auto_diff_percent:.0f}% higher profit
-            - {automation['payback_days'] - manual['payback_days']:.0f}x faster payback
-            - {manual['roi_percent'] - automation['roi_percent']:.0f}% higher ROI
-            """)
-        elif best_idx == 1:  # Hybrid
-            manual_diff_profit = hybrid['annual_profit'] - manual['annual_profit']
-            manual_diff_percent = (manual_diff_profit / manual['annual_profit']) * 100
-            auto_diff_profit = hybrid['annual_profit'] - automation['annual_profit']
-            auto_diff_percent = (auto_diff_profit / automation['annual_profit']) * 100
-            
-            st.markdown(f"""
-            **vs Manual:**
-            - {abs(manual_diff_percent):.0f}% {'lower' if manual_diff_percent < 0 else 'higher'} profit
-            
-            **vs Full Automation:**
-            - {auto_diff_percent:.0f}% higher profit
-            - Reduced operators vs Manual
-            """)
-        else:  # Automation
-            manual_diff_profit = automation['annual_profit'] - manual['annual_profit']
-            manual_diff_percent = (manual_diff_profit / manual['annual_profit']) * 100
-            hybrid_diff_profit = automation['annual_profit'] - hybrid['annual_profit']
-            hybrid_diff_percent = (hybrid_diff_profit / hybrid['annual_profit']) * 100
-            
-            st.markdown(f"""
-            **vs Manual:**
-            - {abs(manual_diff_percent):.0f}% lower profit
-            
-            **vs Hybrid:**
-            - {abs(hybrid_diff_percent):.0f}% lower profit
-            """)
-    
+        st.markdown("#### vs Other Scenarios")
+        lines = []
+        for s in scenarios_list:
+            if s == best_scenario:
+                continue
+            o = scenarios_dict[s]
+            diff_profit = best_data['annual_profit'] - o['annual_profit']
+            diff_percent = (diff_profit / o['annual_profit']) * 100 if o['annual_profit'] != 0 else 0
+            lines.append(
+                f"**vs {s}:**\n"
+                f"- {abs(diff_percent):.0f}% {'higher' if diff_percent >= 0 else 'lower'} annual profit\n"
+                f"- {abs(best_data['payback_days'] - o['payback_days']):.0f} days payback difference\n"
+                f"- {abs(best_data['roi_percent'] - o['roi_percent']):.0f}% ROI difference\n"
+            )
+        st.markdown("\n".join(lines))
+
     st.markdown("---")
-    
-    # Risk Assessment
-    st.markdown("#### 📊 Risk Assessment")
+
+    st.markdown("#### Risk Assessment")
     col3, col4, col5 = st.columns(3)
-    
+
     with col3:
         st.markdown(f"""
             <div style='background: linear-gradient(135deg, #00D9FF20 0%, #00D9FF05 100%);
@@ -975,14 +881,14 @@ with tab6:
                 <h4 style='color: #00D9FF; margin-top: 0;'>Manual Assembly</h4>
                 <p><b>Risk Level: LOW</b></p>
                 <ul style='margin: 10px 0;'>
-                    <li>Quick payback minimizes exposure</li>
+                    <li>Quick payback ({manual['payback_days']:.0f} days) minimizes exposure</li>
                     <li>Operators can assist each other</li>
                     <li>Simple maintenance</li>
                     <li>High operational flexibility</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-    
+
     with col4:
         st.markdown(f"""
             <div style='background: linear-gradient(135deg, #FFB70020 0%, #FFB70005 100%);
@@ -990,14 +896,14 @@ with tab6:
                 <h4 style='color: #FFB700; margin-top: 0;'>Hybrid Assembly</h4>
                 <p><b>Risk Level: MEDIUM</b></p>
                 <ul style='margin: 10px 0;'>
-                    <li>Moderate payback period</li>
-                    <li>Partial automation support</li>
-                    <li>Balanced approach</li>
+                    <li>Moderate payback ({hybrid['payback_days']:.0f} days)</li>
+                    <li>4 stations automated (F, Q, R, Z)</li>
+                    <li>Reduced to 7 operators</li>
                     <li>Medium flexibility</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-    
+
     with col5:
         st.markdown(f"""
             <div style='background: linear-gradient(135deg, #FF006E20 0%, #FF006E05 100%);
@@ -1012,28 +918,29 @@ with tab6:
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
+
     st.markdown(f"""
-    #### 📝 Implementation Notes
-    
+    #### Implementation Notes
+
     **Current Operational Cost Status:**
     - Material Cost Multiplier: {material_mult:.1f}x
     - Labor Cost Multiplier: {labor_mult:.1f}x
     - Overhead Cost Multiplier: {overhead_mult:.1f}x
     - Total Cost per Unit: {best_data['cost_per_unit']:.2f} SEK
-    
-    **Cost Breakdown:**
+
+    **Cost Breakdown ({best_scenario}):**
     - Material: {best_data['material_cost']:.2f} SEK ({best_data['material_cost']/best_data['cost_per_unit']*100:.1f}%)
     - Labor: {best_data['labor_cost']:.2f} SEK ({best_data['labor_cost']/best_data['cost_per_unit']*100:.1f}%)
     - Overhead: {best_data['overhead_cost']:.2f} SEK ({best_data['overhead_cost']/best_data['cost_per_unit']*100:.1f}%)
-    - CAPEX/Unit: {best_data['capex']/(5*production_volume):.2f} SEK ({best_data['capex']/(5*production_volume)/best_data['cost_per_unit']*100:.1f}%)
-    
+    - Maintenance: {best_data['maintenance_cost']:.2f} SEK ({best_data['maintenance_cost']/best_data['cost_per_unit']*100:.1f}%)
+    - CAPEX/Unit: {best_data['capex_per_unit']:.2f} SEK ({best_data['capex_per_unit']/best_data['cost_per_unit']*100:.1f}%)
+
     **For {best_scenario}:**
     - Start with current parameters
     - Monitor material and labor cost trends
-    - Consider hybrid upgrade if costs rise >20%
+    - Consider hybrid upgrade if costs rise significantly
     - Plan for scaling based on volume growth
     """)
 
